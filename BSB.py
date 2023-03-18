@@ -11,12 +11,10 @@ Requirements
   
 Observations
 ------------
-  Starting at some initial point of the square, positive feedback
-  will drive the system toward one of the corners.
-  
-  The final state of the system will always be a corner.
-  
   There are four distinct basins of attraction.
+  
+  Starting at some initial point of the square, positive feedback
+  will drive the system towards one of the four corners.
   
 """
 
