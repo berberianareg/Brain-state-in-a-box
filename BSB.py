@@ -29,9 +29,9 @@ plt.rcParams['font.size']= 15
 plt.rcParams['lines.linewidth'] = 3
 
 #%% build BSB class
-
 class BSB:
     """Brain-state-in-a-box class."""
+    
     def __init__(self, feedback_factor=0.15, num_iterations=1000):
         self.feedback_factor = feedback_factor
         self.num_iterations = num_iterations
@@ -98,6 +98,52 @@ class BSB:
             ax.fill_between(x=y_n,  y1=-1, y2=k_1 * y_n ** (lambda_min/lambda_max), color='grey', zorder=0)
             ax.fill_between(x=-x_n, y1=-1, y2=-k_2 * x_n ** (lambda_max/lambda_min), color='grey', zorder=0)
             
+    def plot_activation_function(self):
+        """Plot piecewise-linear activation function."""
+        fig, ax = plt.subplots()
+        output = np.linspace(-2.0, 2.0, 1000)
+        activation = self.activation_function(output)
+        ax.plot(output, activation)
+        ax.set_xticks([-1, 1])
+        ax.set_yticks([-1, 1])
+        ax.axvline(x=0, color='k', ls='--', lw=2)
+        ax.axhline(y=0, color='k', ls='--', lw=2)
+        ax.set_xlabel('y')
+        ax.set_ylabel('f(y)')
+        ax.set_title('piecewise-linear activation function')
+        fig.tight_layout()
+        fig.savefig(os.path.join(os.getcwd(), 'figure_1'))
+        
+    def plot_bsb_dynamics(self, x_n, y_n, k_1, k_2, lambda_min, lambda_max):
+        """Plot two BSB neurons operating under 4 different initial conditions."""
+        fig, ax = plt.subplots(nrows=2, ncols=2)
+        ax = ax.ravel()
+        for i in range(len(input_patterns)):
+            # trajectory of output patterns
+            x = np.vstack(output_patterns[i])[::50, 0]
+            y = np.vstack(output_patterns[i])[::50, 1]
+            # final state of output pattern
+            x_final_state = x[-1].astype(int)
+            y_final_state = y[-1].astype(int)
+            # show trajectory of output patterns
+            ax[i].scatter(x, y, s=100)
+            ax[i].scatter(x_final_state, y_final_state, s=150, color='r')
+            ax[i].plot(x, y, color='k')
+            # show basin of attraction boundary
+            self.show_attractor_basin_boundary(x_n, y_n, k_1, k_2, lambda_min, lambda_max, ax=ax[i])
+            # show basin of attraction
+            self.show_attractor_basin(x_final_state, y_final_state, x_n, y_n, k_1, k_2, lambda_min, lambda_max, ax=ax[i])
+            # add vertical and horizontal lines
+            ax[i].axvline(x=0, color='k', ls='-', lw=2)
+            ax[i].axhline(y=0, color='k', ls='-', lw=2)
+            # set xticks and yticks
+            ax[i].set_xticks([])
+            ax[i].set_yticks([])
+        fig.suptitle('four distinct basins of attraction')
+        fig.tight_layout()
+        fig.savefig(os.path.join(os.getcwd(), 'figure_2'))
+    
+    
 #%% instantiate BSB class
 model = BSB()
 
@@ -110,20 +156,20 @@ weights = model.initialize_connection_weights()
 #%% train BSB model
 output_patterns = model.run_model(input_patterns, weights)
 
-#%% eigenvectors and corresponding eigenvalues of the two dimensional system
+#%% get eigenvectors and corresponding eigenvalues of the two dimensional system
 eigenvalues, eigenvectors = np.linalg.eigh(weights)
 lambda_min = eigenvalues[0].round(2)
 lambda_max = eigenvalues[1].round(2)
-# determines the intersection with the boundary four (unstable) equilibrium points
+# determine the intersection with the boundary four (unstable) equilibrium points
 x_value = lambda_max * np.sqrt(2) / (lambda_min + lambda_max)
-# unstable equilibrium points
+# get unstable equilibrium points
 x_0 = 1-x_value
 y_0 = 1
-# x and y coordinates
+# get x and y coordinates
 n_points = 100
 x_n = np.linspace(0, x_0, n_points)
 y_n = np.linspace(0, y_0, n_points)
-# attractor coefficients
+# get attractor coefficients
 k_1 = x_0/y_0**(lambda_min/lambda_max)
 k_2 = y_0/x_0**(lambda_max/lambda_min)
 
@@ -140,53 +186,16 @@ else:
     os.chdir(os.path.join(cwd, fileName))                                       # change cwd to the given path
     cwd = os.getcwd()                                                           # get current working directory
 
-# figure 1 - activation function
-fig, ax = plt.subplots()
-output = np.linspace(-2.0, 2.0, 1000)
-activation = BSB().activation_function(output)
-ax.plot(output, activation)
-ax.set_xticks([-1, 1])
-ax.set_yticks([-1, 1])
-ax.axvline(x=0, color='k', ls='--', lw=2)
-ax.axhline(y=0, color='k', ls='--', lw=2)
-ax.set_xlabel('y')
-ax.set_ylabel('f(y)')
-ax.set_title('piecewise-linear activation function')
-fig.tight_layout()
-fig.savefig(os.path.join(os.getcwd(), 'figure_1'))
+# plot activation function
+model.plot_activation_function()
 
-# figure 2 - two neuron BSB model operating under 4 different initial conditions
-fig, ax = plt.subplots(nrows=2, ncols=2)
-ax = ax.ravel()
-for i in range(len(input_patterns)):
-    # trajectory of output patterns
-    x = np.vstack(output_patterns[i])[::50, 0]
-    y = np.vstack(output_patterns[i])[::50, 1]
-    # final state of output pattern
-    x_final_state = x[-1].astype(int)
-    y_final_state = y[-1].astype(int)
-    # show trajectory of output patterns
-    ax[i].scatter(x, y, s=100)
-    ax[i].scatter(x_final_state, y_final_state, s=150, color='r')
-    ax[i].plot(x, y, color='k')
-    # show basin of attraction boundary
-    model.show_attractor_basin_boundary(x_n, y_n, k_1, k_2, lambda_min, lambda_max, ax=ax[i])
-    # show basin of attraction
-    model.show_attractor_basin(x_final_state, y_final_state, x_n, y_n, k_1, k_2, lambda_min, lambda_max, ax=ax[i])
-    # add vertical and horizontal lines
-    ax[i].axvline(x=0, color='k', ls='-', lw=2)
-    ax[i].axhline(y=0, color='k', ls='-', lw=2)
-    # set xticks and yticks
-    ax[i].set_xticks([])
-    ax[i].set_yticks([])
-fig.suptitle('four distinct basins of attraction')
-fig.tight_layout()
-fig.savefig(os.path.join(os.getcwd(), 'figure_2'))
-
+# plot bsb dynamics
+model.plot_bsb_dynamics(x_n, y_n, k_1, k_2, lambda_min, lambda_max)
 
 #%% remove variables
-del fig, i, ax, n_points, x_value, output, activation, fileName
-del x, x_0, x_n, x_final_state
-del y, y_0, y_n, y_final_state
-del lambda_min, lambda_max
+del x_0, x_n
+del y_0, y_n
 del k_1, k_2
+del lambda_min, lambda_max
+del n_points, x_value, fileName
+
