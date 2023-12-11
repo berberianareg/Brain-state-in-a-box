@@ -26,7 +26,7 @@ import os
 #%% figure parameters
 plt.rcParams['figure.figsize'] = (6,6)
 plt.rcParams['font.size']= 15
-plt.rcParams['lines.linewidth'] = 3
+plt.rcParams['lines.linewidth'] = 2
 
 #%% build BSB class
 class BSB:
@@ -48,8 +48,16 @@ class BSB:
     
     def initialize_connection_weights(self):
         """Initialize connection weights."""
-        weights = np.array([[0.035, -0.005],
-                            [-0.005, 0.035]])
+        max_eigenvector = np.array([[1], [-1]])
+        max_eigenvalue = 0.04
+
+        min_eigenvector = np.array([[1], [1]])
+        min_eigenvalue = 0.03
+        
+        max_weights = max_eigenvalue * 0.5 * np.dot(max_eigenvector, max_eigenvector.T)
+        min_weights = min_eigenvalue * 0.5 * np.dot(min_eigenvector, min_eigenvector.T)
+        
+        weights = max_weights + min_weights
         return weights
     
     def run_model(self, input_patterns, weights):
@@ -65,39 +73,7 @@ class BSB:
                 output_patterns[index].append(output_pattern)
                 iteration_count += 1
         return output_patterns
-    
-    def show_attractor_basin_boundary(self, x_n, y_n, k_1, k_2, lambda_min, lambda_max, ax):
-        """Show boundaries that separate distinct basins of attraction."""
-        # first set of boundaries
-        ax.plot(y_n, k_1 * y_n ** (lambda_min/lambda_max), c='k')
-        ax.plot(-y_n, -k_1 * y_n ** (lambda_min/lambda_max), c='k')
-        # second set of boundaries
-        ax.plot(x_n, k_2 * x_n ** (lambda_max/lambda_min), c='k')
-        ax.plot(-x_n, -k_2 * x_n ** (lambda_max/lambda_min), c='k')
-        
-    def show_attractor_basin(self, x_final_state, y_final_state, x_n, y_n, k_1, k_2, lambda_min, lambda_max, ax):
-        """Show basin of attraction based on output pattern."""
-        # top right corner
-        if [x_final_state, y_final_state] == [1, 1]:
-            ax.fill_between(x=y_n, y1=0, y2=1, color='grey', zorder=0)
-            ax.fill_between(x=y_n, y1=0, y2=k_1 * y_n ** (lambda_min/lambda_max), color='white')
-            ax.fill_between(x=x_n, y1=1, y2=k_2 * x_n ** (lambda_max/lambda_min), color='white')
-        # top left corner
-        if [x_final_state, y_final_state] == [-1, 1]:
-            ax.fill_between(x=-y_n, y1=0, y2=1, color='grey', zorder=0)
-            ax.fill_between(x=x_n,  y1=1, y2=k_2 * x_n ** (lambda_max/lambda_min), color='grey', zorder=0)
-            ax.fill_between(x=-y_n, y1=0, y2=-k_1 * y_n ** (lambda_min/lambda_max), color='grey', zorder=0)
-        # bottom left corner
-        if [x_final_state, y_final_state] == [-1, -1]:
-            ax.fill_between(x=-y_n, y1=0,  y2=-1, color='grey', zorder=0)
-            ax.fill_between(x=-x_n, y1=-1, y2=-k_2 * x_n ** (lambda_max/lambda_min), color='white')
-            ax.fill_between(x=-y_n, y1=0,  y2=-k_1 * y_n ** (lambda_min/lambda_max), color='white')
-        # bottom right corner
-        if [x_final_state, y_final_state] == [1, -1]:
-            ax.fill_between(x=y_n,  y1=0,  y2=-1, color='grey', zorder=0)
-            ax.fill_between(x=y_n,  y1=-1, y2=k_1 * y_n ** (lambda_min/lambda_max), color='grey', zorder=0)
-            ax.fill_between(x=-x_n, y1=-1, y2=-k_2 * x_n ** (lambda_max/lambda_min), color='grey', zorder=0)
-            
+                        
     def plot_activation_function(self):
         """Plot piecewise-linear activation function."""
         fig, ax = plt.subplots()
@@ -114,7 +90,31 @@ class BSB:
         fig.tight_layout()
         fig.savefig(os.path.join(os.getcwd(), 'figure_1'))
         
-    def plot_bsb_dynamics(self, x_n, y_n, k_1, k_2, lambda_min, lambda_max):
+    def plot_attractor_basin_boundary(self, lambda_min, lambda_max, ax):
+        """Plot boundaries that separate distinct basins of attraction."""
+        # attractor intersections
+        x0 = (lambda_max * np.sqrt(2)) / (lambda_min + lambda_max)
+        y0 = (lambda_min * np.sqrt(2)) / (lambda_min + lambda_max)
+        # attractor coefficient
+        k = y0 / x0 ** (lambda_max/lambda_min)
+        # x-coordinates
+        x = np.linspace(-1, 1, 100)
+        # y-coordinates
+        y_pos =  k * np.sign(x) * abs(x) ** (lambda_max/lambda_min)
+        y_neg = -k * np.sign(x) * abs(x) ** (lambda_max/lambda_min)
+        # rotation angle
+        rotation_angle = np.pi/4
+        # rotation matrix
+        counterclockwise_rotation_matrix = np.array([[np.cos(rotation_angle), -np.sin(rotation_angle)],
+                                                     [np.sin(rotation_angle),  np.cos(rotation_angle)]])
+        # rotate attractor basins
+        x_bounary_pos, y_bounary_pos = np.dot(counterclockwise_rotation_matrix, np.array([x, y_pos]))
+        x_bounary_neg, y_bounary_neg = np.dot(counterclockwise_rotation_matrix, np.array([x, y_neg]))
+        # plot boundaries
+        ax.plot(x_bounary_pos, y_bounary_pos, color='k')
+        ax.plot(x_bounary_neg, y_bounary_neg, color='k')
+        
+    def plot_bsb_dynamics(self, lambda_min, lambda_max):
         """Plot two BSB neurons operating under 4 different initial conditions."""
         fig, ax = plt.subplots(nrows=2, ncols=2)
         ax = ax.ravel()
@@ -130,20 +130,20 @@ class BSB:
             ax[i].scatter(x_final_state, y_final_state, s=150, color='r')
             ax[i].plot(x, y, color='k')
             # show basin of attraction boundary
-            self.show_attractor_basin_boundary(x_n, y_n, k_1, k_2, lambda_min, lambda_max, ax=ax[i])
-            # show basin of attraction
-            self.show_attractor_basin(x_final_state, y_final_state, x_n, y_n, k_1, k_2, lambda_min, lambda_max, ax=ax[i])
+            self.plot_attractor_basin_boundary(lambda_min, lambda_max, ax=ax[i])
             # add vertical and horizontal lines
             ax[i].axvline(x=0, color='k', ls='-', lw=2)
             ax[i].axhline(y=0, color='k', ls='-', lw=2)
             # set xticks and yticks
             ax[i].set_xticks([])
             ax[i].set_yticks([])
+            ax[i].set_ylim(-1.1, 1.1)
+            ax[i].set_xlim(-1.1, 1.1)
+                        
         fig.suptitle('four distinct basins of attraction')
         fig.tight_layout()
         fig.savefig(os.path.join(os.getcwd(), 'figure_2'))
-    
-    
+        
 #%% instantiate BSB class
 model = BSB()
 
@@ -160,18 +160,6 @@ output_patterns = model.run_model(input_patterns, weights)
 eigenvalues, eigenvectors = np.linalg.eigh(weights)
 lambda_min = eigenvalues[0].round(2)
 lambda_max = eigenvalues[1].round(2)
-# determine the intersection with the boundary four (unstable) equilibrium points
-x_value = lambda_max * np.sqrt(2) / (lambda_min + lambda_max)
-# get unstable equilibrium points
-x_0 = 1-x_value
-y_0 = 1
-# get x and y coordinates
-n_points = 100
-x_n = np.linspace(0, x_0, n_points)
-y_n = np.linspace(0, y_0, n_points)
-# get attractor coefficients
-k_1 = x_0/y_0**(lambda_min/lambda_max)
-k_2 = y_0/x_0**(lambda_max/lambda_min)
 
 #%% make figures
 cwd = os.getcwd()                                                               # get current working directory
@@ -190,12 +178,5 @@ else:
 model.plot_activation_function()
 
 # plot bsb dynamics
-model.plot_bsb_dynamics(x_n, y_n, k_1, k_2, lambda_min, lambda_max)
-
-#%% remove variables
-del x_0, x_n
-del y_0, y_n
-del k_1, k_2
-del lambda_min, lambda_max
-del n_points, x_value, fileName
+model.plot_bsb_dynamics(lambda_min, lambda_max)
 
