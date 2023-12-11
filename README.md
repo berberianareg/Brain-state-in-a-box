@@ -67,4 +67,3 @@ see requirements.txt
 - LinkedIn - [Nareg Berberian](https://www.linkedin.com/in/nareg-berberian-phd-ab6759b9/)
 
 [Back to the Top](#brain-state-in-a-box-model-1977)
-
