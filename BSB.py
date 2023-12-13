@@ -108,11 +108,11 @@ class BSB:
         counterclockwise_rotation_matrix = np.array([[np.cos(rotation_angle), -np.sin(rotation_angle)],
                                                      [np.sin(rotation_angle),  np.cos(rotation_angle)]])
         # rotate attractor basins
-        x_bounary_pos, y_bounary_pos = np.dot(counterclockwise_rotation_matrix, np.array([x, y_pos]))
-        x_bounary_neg, y_bounary_neg = np.dot(counterclockwise_rotation_matrix, np.array([x, y_neg]))
+        x_boundary_pos, y_boundary_pos = np.dot(counterclockwise_rotation_matrix, np.array([x, y_pos]))
+        x_boundary_neg, y_boundary_neg = np.dot(counterclockwise_rotation_matrix, np.array([x, y_neg]))
         # plot boundaries
-        ax.plot(x_bounary_pos, y_bounary_pos, color='k')
-        ax.plot(x_bounary_neg, y_bounary_neg, color='k')
+        ax.plot(x_boundary_pos, y_boundary_pos, color='k')
+        ax.plot(x_boundary_neg, y_boundary_neg, color='k')
         
     def plot_bsb_dynamics(self, lambda_min, lambda_max):
         """Plot two BSB neurons operating under 4 different initial conditions."""
